@@ -11,7 +11,7 @@ jobs:
       contents: write  # 允许推送代码
     steps: 
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: fetch source 
       run: |
           ### wget https://github.com/zwc456baby/iptv_alive/raw/master/live.txt -O input.txt
