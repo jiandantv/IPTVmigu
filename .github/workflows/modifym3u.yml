@@ -37,7 +37,7 @@ jobs:
           wget https://raw.githubusercontent.com/lwzlinyi/ziyong/refs/heads/main/live2.m3u -O live2.m3u
           python ./scripts/extract.py --input live2.m3u --output t2op.m3u --eoru ',huuc'
           python ./scripts/deduplicate.py -i t2op.m3u -o t2output.m3u
-          python ./scripts/m3u_merger.py -i t2output.m3u -o t2merged.m3u
+          python ./scripts/m3u_merger.py -i t2m_output.m3u -o t2merged.m3u
 
           
     - name: CommitAndPush
