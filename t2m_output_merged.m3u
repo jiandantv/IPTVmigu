@@ -62,17 +62,6 @@ http://gmxw.7766.org:808/hls/93/index.m3u8
 http://iptv.huuc.edu.cn/hls/cctv5hd.m3u8
 http://sh.lnott.top:880/dx05.m3u8
 http://ygbh.site/php/bfgd.php?id=064
-#EXTINF:-1 tvg-name="CCTV5+" tvg-logo="https://live.fanmingming.com/tv/CCTV5+.png" group-title="央视频道",CCTV5+
-http://111.43.126.240:9003/hls/18/index.m3u8
-http://182.150.23.74:808/hls/16/index.m3u8
-http://218.89.240.144:59901/tsfile/live/0016_1.m3u8
-http://222.169.85.8:9901/tsfile/live/0116_1.m3u8
-http://36.105.100.208:35455/gaoma/cctv5p.m3u8
-http://cdn6.bkpcp.top/tl/tuiliu.php?id=cctv5p
-http://cfss.cc/api/ysp/cctv5p.m3u8
-http://sh.lnott.top:880/dx16.m3u8
-http://ygbh.site/php/bfgd.php?id=246
-https://piccpndali.v.myalicdn.com/audio/cctv5plus_2.m3u8
 #EXTINF:-1 tvg-name="CCTV6" tvg-logo="https://live.fanmingming.com/tv/CCTV6.png" group-title="央视(IPV6)",CCTV6
 http://111.43.126.240:9003/hls/19/index.m3u8
 http://120.76.248.139/live/bfgd/4200000065.m3u8
@@ -131,16 +120,6 @@ http://[2409:8087:8:21::18]:6610/otttv.bj.chinamobile.com/PLTV/88888888/224/3221
 http://cdn6.bkpcp.top/tl/tuiliu.php?id=cctv10
 http://sh.lnott.top:880/dx10.m3u8
 http://ygbh.site/php/bfgd.php?id=129
-#EXTINF:-1 tvg-name="CCTV11" tvg-logo="https://live.fanmingming.com/tv/CCTV11.png" group-title="央视频道",CCTV11
-http://111.43.126.240:9003/hls/24/index.m3u8
-http://120.76.248.139/live/bfgd/4200000130.m3u8
-http://183.11.239.36:808/hls/29/index.m3u8
-http://39.164.160.249:9901/tsfile/live/0011_1.m3u8
-http://58.57.40.22:9901/tsfile/live/1011_1.m3u8
-http://cdn6.bkpcp.top/tl/tuiliu.php?id=cctv11
-http://sh.lnott.top:880/dx11.m3u8
-http://ygbh.site/php/bfgd.php?id=130
-https://piccpndali.v.myalicdn.com/audio/cctv11_2.m3u8
 #EXTINF:-1 tvg-name="CCTV12" tvg-logo="https://live.fanmingming.com/tv/CCTV12.png" group-title="央视(IPV6)",CCTV12
 http://111.43.126.240:9003/hls/25/index.m3u8
 http://120.238.94.10:9901/tsfile/live/1030_1.m3u8
@@ -208,6 +187,27 @@ http://[2409:8087:1a01:df::4025]:80/TVOD/88888888/224/3221225708/main.m3u8
 http://cdn6.bkpcp.top/tl/tuiliu.php?id=cctv17
 http://sh.lnott.top:880/dx17.m3u8
 http://ygbh.site/php/bfgd.php?id=204
+#EXTINF:-1 tvg-name="CCTV5+" tvg-logo="https://live.fanmingming.com/tv/CCTV5+.png" group-title="央视频道",CCTV5+
+http://111.43.126.240:9003/hls/18/index.m3u8
+http://182.150.23.74:808/hls/16/index.m3u8
+http://218.89.240.144:59901/tsfile/live/0016_1.m3u8
+http://222.169.85.8:9901/tsfile/live/0116_1.m3u8
+http://36.105.100.208:35455/gaoma/cctv5p.m3u8
+http://cdn6.bkpcp.top/tl/tuiliu.php?id=cctv5p
+http://cfss.cc/api/ysp/cctv5p.m3u8
+http://sh.lnott.top:880/dx16.m3u8
+http://ygbh.site/php/bfgd.php?id=246
+https://piccpndali.v.myalicdn.com/audio/cctv5plus_2.m3u8
+#EXTINF:-1 tvg-name="CCTV11" tvg-logo="https://live.fanmingming.com/tv/CCTV11.png" group-title="央视频道",CCTV11
+http://111.43.126.240:9003/hls/24/index.m3u8
+http://120.76.248.139/live/bfgd/4200000130.m3u8
+http://183.11.239.36:808/hls/29/index.m3u8
+http://39.164.160.249:9901/tsfile/live/0011_1.m3u8
+http://58.57.40.22:9901/tsfile/live/1011_1.m3u8
+http://cdn6.bkpcp.top/tl/tuiliu.php?id=cctv11
+http://sh.lnott.top:880/dx11.m3u8
+http://ygbh.site/php/bfgd.php?id=130
+https://piccpndali.v.myalicdn.com/audio/cctv11_2.m3u8
 #EXTINF:-1 tvg-name="安徽卫视" tvg-logo="https://live.fanmingming.com/tv/安徽卫视.png" group-title="卫视频道",安徽卫视
 http://123.129.70.178:9901/tsfile/live/0130_1.m3u8
 http://58.19.43.46:9901/tsfile/live/1040_1.m3u8
