@@ -42,19 +42,29 @@ def merge_m3u_channels(m3u_content):
             else:
                 current_channel_name = None 
             
-            if current_channel_name and current_channel_name not in channels_map:
-                # 存储该频道的第一条信息行（作为最终输出的属性）
-                channels_map[current_channel_name] = {"info": current_info_line, "urls": set()}
+            if current_channel_name:
+                if current_channel_name not in channels_map:
+                    # 首次遇到，初始化
+                    channels_map[current_channel_name] = {"info": current_info_line, "urls": set()}
+                else:
+                    # 非首次遇到，更新属性行（选择最新/最后读取到的）
+                    channels_map[current_channel_name]["info"] = current_info_line
             
         # 3. 识别 URL 行
-        elif line.startswith('http://') or line.startswith('https://'):
+        # 只要当前有激活的频道名称，并且当前行是 URL，就进行收集。
+        elif (line.startswith('http://') or line.startswith('https://')):
             if current_channel_name and current_channel_name in channels_map:
                 # 将 URL 添加到对应频道的集合中 (集合会自动去重)
                 channels_map[current_channel_name]["urls"].add(line)
-                
-            # URL 处理完后，将 current_channel_name 重置，确保下一个 URL 必须紧跟在 #EXTINF 之后
-            current_channel_name = None 
-            current_info_line = None
+            
+            # --- 关键修改：不再重置 current_channel_name/current_info_line。
+            # 这允许连续的多个 URL 都归属于同一个 #EXTINF。
+            # 只有遇到下一个 #EXTINF 或非 URL/EXTINF 行时，它才会被覆盖或重置。
+        
+        # 4. 遇到非 M3U 标签、非 #EXTINF 和 非 URL 的行 (例如注释或空行)，则重置状态
+        else:
+             current_channel_name = None
+             current_info_line = None
 
 
     # --- 第二步：重新构建 M3U 内容 ---
@@ -70,23 +80,19 @@ def merge_m3u_channels(m3u_content):
             
     return '\n'.join(output_lines)
 
+# (main 函数保持不变，因为它处理文件 I/O 是正确的)
 def main():
-    # 1. 创建参数解析器
     parser = argparse.ArgumentParser(
         description="合并多个M3U文件的内容，对同名频道下的所有URL进行去重和分组，并输出到一个文件。",
         formatter_class=argparse.RawTextHelpFormatter
     )
-    
-    # 2. 定义输入文件参数，使用 nargs='+' 允许一个或多个文件
     parser.add_argument(
         '-i', '--input',
         type=str,
-        nargs='+',  # <--- 关键修改：允许接受一个或多个参数
+        nargs='+',  
         required=True,
         help="一个或多个输入M3U文件的路径，例如: input1.m3u input2.m3u"
     )
-    
-    # 3. 定义输出文件参数
     parser.add_argument(
         '-o', '--output',
         type=str,
@@ -94,25 +100,19 @@ def main():
         help="输出M3U文件的路径，例如: combined.m3u"
     )
 
-    # 4. 解析命令行参数
     args = parser.parse_args()
-    
     all_m3u_content = []
     
-    # 5. 循环读取所有输入文件
     for input_file in args.input:
-        # 检查输入文件是否存在
         if not os.path.exists(input_file):
             print(f"错误: 输入文件 '{input_file}' 不存在。跳过此文件。", file=sys.stderr)
             continue
             
-        # 检查输入文件和输出文件是否相同
         if input_file == args.output:
             print(f"警告: 输入文件 '{input_file}' 和输出文件不能是同一个文件。跳过此文件。", file=sys.stderr)
             continue
 
         try:
-            # 读取输入文件内容
             with open(input_file, 'r', encoding='utf-8') as f:
                 all_m3u_content.append(f.read())
                 
@@ -120,19 +120,15 @@ def main():
             print(f"读取文件 '{input_file}' 时发生错误: {e}", file=sys.stderr)
             sys.exit(1)
 
-    # 检查是否有内容可以处理
     if not all_m3u_content:
         print("没有可供处理的输入文件内容。程序退出。", file=sys.stderr)
         sys.exit(0)
         
-    # 将所有文件的内容合并成一个大字符串
     combined_content = '\n'.join(all_m3u_content)
 
     try:
-        # 执行合并和去重操作
         modified_m3u = merge_m3u_channels(combined_content)
         
-        # 写入输出文件
         with open(args.output, 'w', encoding='utf-8') as f:
             f.write(modified_m3u)
             
