@@ -45,6 +45,7 @@ jobs:
         mv ../output_merged.m3u ./t2m_output_merged.m3u
         mv ../kkx_ipv6.m3u ./kakaxi-1_ipv6.m3u
         mv ../ipv6_merged.m3u ./ipv6_merged.m3u
+        mv ../tv1op.m3u ./php.jdshipin.com.m3u
         mv ../tv1op_merged.m3u ./php.jdshipin.com_merged.m3u
         git add .
         if git diff --cached --quiet; then
