@@ -13,10 +13,10 @@
 
 
 ## 离线安装crx
-- [利用组策略启用离线安装的crx](https://learn.microsoft.com/zh-cn/deployedge/microsoft-edge-manage-extensions-policies#allow-or-block-extensions-in-group-policy)
+- [利用组策略启用离线安装的crx -edge示例](https://learn.microsoft.com/zh-cn/deployedge/microsoft-edge-manage-extensions-policies#allow-or-block-extensions-in-group-policy)
 
-- [组策略模板 chrome](https://www.chromium.org/administrators/policy-templates/)
+- [安装组策略模板 -edge示例](https://learn.microsoft.com/zh-cn/deployedge/configure-microsoft-edge)
 
 - [组策略模板 edge](https://aka.ms/EdgeEnterprise)
 
-- [安装组策略模板 edge示例](https://learn.microsoft.com/zh-cn/deployedge/configure-microsoft-edge)
+- [组策略模板 chrome](https://www.chromium.org/administrators/policy-templates/)
