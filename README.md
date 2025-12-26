@@ -19,7 +19,7 @@ https://gh-proxy.org/github.com/ioptu/IPTV.txt2m3u.player/raw/refs/heads/main/sh
 ```
 https://gh-proxy.org/github.com/ioptu/IPTV.txt2m3u.player/blob/main/chrome%20extension/Flv.m3u8.player.zip
 ```
-- [扩展详情](https://github.com/ioptu/IPTV.txt2m3u.player/blob/main/chrome%20extension/readme.md)
+- [扩展简介](https://github.com/ioptu/IPTV.txt2m3u.player/blob/main/chrome%20extension/readme.md)
 
 ## 其他
 
