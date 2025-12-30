@@ -68,7 +68,7 @@ jobs:
         ##mv ../2final.m3u ./qwt_finalurl.m3u
         mv ../t1output.m3u ./sh.lnott.top.m3u
         mv ../t2output.m3u ./huuc_ipv6.m3u
-        mv ../t2merged.m3u ./t2m_output_merged.m3u
+        #mv ../t2merged.m3u ./t2m_output_merged.m3u
         mv ../tv1op.m3u ./yp.qqqtv.top.m3u
         mv ../tv1op_ms.m3u  ./yp.qqqtv.top_merged.m3u
 
