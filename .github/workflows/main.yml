@@ -25,22 +25,22 @@ jobs:
           python ./scripts/m3u_merger.py -i mg_m.m3u -o mg_merged.m3u
           
           wget https://raw.githubusercontent.com/lwzlinyi/ziyong/refs/heads/main/live2.m3u -O live2.m3u  -t 2 --waitretry=5
-          python ./scripts/extract.py --input live2.m3u --output t1op.m3u --eoru ',huuc'
+          python ./scripts/extract.py --input live2.m3u --output t1op.m3u --eoru ',huuc' -n
           python ./scripts/deduplicate.py -i t1op.m3u -o t1output.m3u
 
           wget http://www.lyyytv.cn/yt/zhibo/1.txt -O 1.txt -t 2 --waitretry=5
           node ./scripts/txt2m3u.js -i 1.txt -o 1.m3u
-          python ./scripts/extract.py --input 1.m3u --output t2op.m3u --eoru ',lnott'
+          python ./scripts/extract.py --input 1.m3u --output t2op.m3u --eoru ',lnott' -n
           python ./scripts/deduplicate.py -i t2op.m3u -o t2output.m3u
 
           wget https://github.com/xiaoran29/core/raw/refs/heads/main/output/lite.m3u -O lite.m3u  -t 2 --waitretry=5
-          python ./scripts/extract.py --input lite.m3u --output t3op.m3u --eoru ',qqqtv'        
+          python ./scripts/extract.py --input lite.m3u --output t3op.m3u --eoru ',qqqtv' -n        
           python ./scripts/m3u_merger.py -i t3op.m3u -o t3op_merged.m3u
           python ./scripts/url_sorter.py -i t3op_merged.m3u -o t3op_ms.m3u -k 'HD&auth=666858,auth=66615415'
 
           wget https://github.com/hainantv/kk/raw/refs/heads/main/hainan.txt -O hainan.txt  -t 2 --waitretry=5
           node ./scripts/txt2m3u.js -i hainan.txt -o t4op.m3u
-          python ./scripts/extract.py --input t4op.m3u --output tv4output.m3u --eoru ',php.jdshipin.com/TVOD/iptv.php?id=' 
+          python ./scripts/extract.py --input t4op.m3u --output tv4output.m3u --eoru ',php.jdshipin.com/TVOD/iptv.php?id=' -n
           python ./scripts/m3u_merger.py -i tv4output.m3u -o tv4output_merged.m3u
 
 
