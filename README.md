@@ -23,9 +23,10 @@ https://gh-proxy.org/github.com/ioptu/IPTV.txt2m3u.player/blob/main/chrome%20ext
 
 ## 其他
 
+
 - [移动端播放软件APK](https://github.com/skysolf/iptv/)
 
-
+- [电视直播软件_mytv-android](https://github.com/mytv-android/mytv-android)
 
 （Github文件加速，将GitHub链接转换为多区域加速链接，解决GitHub访问慢、下载失败等问题 ）
 
