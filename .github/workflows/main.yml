@@ -37,9 +37,9 @@ jobs:
           python ./scripts/deduplicate.py -i t2op.m3u -o t2output.m3u
 
           wget https://github.com/xiaoran29/core/raw/refs/heads/main/output/lite.m3u -O lite.m3u  -t 2 --waitretry=5
-          #python ./scripts/extract.py --input lite.m3u --output t3op.m3u --eoru ',qqqtv' -n        
-          #python ./scripts/m3u_merger.py -i t3op.m3u -o t3op_merged.m3u
-          #python ./scripts/url_sorter.py -i t3op_merged.m3u -o t3op_ms.m3u -k 'HD&auth=666858,auth=66615415'
+          python ./scripts/extract.py --input lite.m3u --output t3op.m3u --eoru ',qqqtv' -n        
+          python ./scripts/m3u_merger.py -i t3op.m3u -o t3op_merged.m3u
+          python ./scripts/url_sorter.py -i t3op_merged.m3u -o t3op_ms.m3u -k 'HD&auth=666858,auth=66615415'
 
           python ./scripts/extract.py --input lite.m3u --output t3op2.m3u --eoru ',catvod.com' -n 
           python ./scripts/m3u_merger.py -i t3op2.m3u -o t3op2_merged.m3u
@@ -71,8 +71,8 @@ jobs:
         mv ../mg_merged.m3u ./migu_merged.m3u
         mv ../t1output.m3u ./huuc_ipv6.m3u
         mv ../t2output.m3u ./sh.lnott.top.m3u
-        #mv ../t3op.m3u ./yp.qqqtv.top.m3u
-        #mv ../t3op_ms.m3u  ./yp.qqqtv.top_merged.m3u
+        mv ../t3op.m3u ./yp.qqqtv.top.m3u
+        mv ../t3op_ms.m3u  ./yp.qqqtv.top_merged.m3u
         mv ../tv4output.m3u ./php.jdshipin.com.m3u
         mv ../tv4output_merged.m3u ./php.jdshipin.com_merged.m3u
         mv ../t3op2.m3u ./catvod.com.m3u
