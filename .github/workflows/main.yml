@@ -12,7 +12,7 @@ jobs:
     permissions:
       contents: write  # 允许推送代码
     env:
-      ONLY_UPDATE_MIGU: true  # 在这里修改：true 表示只更新 migu_merged.m3u，false 表示更新所有文件
+      ONLY_UPDATE_MIGU: false  # 在这里修改：true 表示只更新 migu_merged.m3u，false 表示更新所有文件
     steps: 
     - name: Checkout code
       uses: actions/checkout@v5
@@ -80,7 +80,7 @@ jobs:
         cd "$REPO_NAME" || exit 1  # 强制失败时退出
 
         # 后续操作...
-        
+        mv ../*.m3u ./backup/
         # 移动migu文件（总是执行）
         mv ../mg_merged.m3u ./migu_merged.m3u
         
