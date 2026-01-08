@@ -1,9 +1,12 @@
 import requests
 import re
+import os
+import sys
+import tempfile
+import shutil
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from urllib.parse import urljoin
-import sys
 import argparse
 
 def get_final_url(url, max_redirects=10, timeout=5):
@@ -120,11 +123,130 @@ def resolve_urls_with_retry(urls, max_workers=10, timeout=5, max_retries=3, dela
 
     return resolved_info # 返回包含所有解析结果的字典
 
-def process_m3u_file(input_file, output_file, max_workers=10, timeout=5, max_retries=3):
+def safe_write_output(lines, input_path, output_path):
+    """
+    安全地写入输出文件，支持同文件覆盖
+    
+    :param lines: 要写入的行列表
+    :param input_path: 输入文件路径
+    :param output_path: 输出文件路径
+    :return: (success, temp_path) 成功返回(True, None)，失败返回(False, temp_path)
+    """
+    # 获取绝对路径以判断是否为同一个文件
+    input_abs = os.path.abspath(input_path)
+    output_abs = os.path.abspath(output_path)
+    is_same_file = input_abs == output_abs
+    
+    temp_path = None
+    
+    try:
+        # 如果是同一个文件，先写到临时文件
+        if is_same_file:
+            # 在与输出文件相同目录创建临时文件
+            output_dir = os.path.dirname(output_path) or '.'
+            fd, temp_path = tempfile.mkstemp(
+                dir=output_dir,
+                suffix='.m3u',
+                prefix='.tmp_',
+                text=True
+            )
+            
+            # 使用文件描述符打开文件
+            out_f = os.fdopen(fd, 'w', encoding='utf-8')
+        else:
+            # 直接打开输出文件
+            out_f = open(output_path, 'w', encoding='utf-8')
+        
+        # 写入数据
+        with out_f:
+            out_f.write('\n'.join(lines))
+        
+        # 如果是同一个文件，进行原子替换
+        if is_same_file:
+            try:
+                # Python 3.3+ 推荐使用 os.replace 实现原子替换
+                os.replace(temp_path, output_path)
+                temp_path = None  # 替换成功，清除临时文件引用
+            except Exception as e:
+                # 如果 os.replace 失败，使用 shutil.move 作为备选
+                print(f"警告：原子替换失败，使用备选方案: {e}")
+                shutil.move(temp_path, output_path)
+                temp_path = None  # 移动成功，清除临时文件引用
+        
+        return True, None
+        
+    except Exception as e:
+        print(f"写入文件失败: {e}")
+        return False, temp_path
+
+def validate_arguments(input_path, output_path):
+    """
+    验证命令行参数的合理性
+    
+    :param input_path: 输入文件路径
+    :param output_path: 输出文件路径
+    :return: 验证成功返回True，失败返回False
+    """
+    # 检查输入文件是否存在
+    if not os.path.exists(input_path):
+        print(f"错误：输入文件 '{input_path}' 不存在")
+        return False
+    
+    # 检查输入文件是否可读
+    if not os.access(input_path, os.R_OK):
+        print(f"错误：输入文件 '{input_path}' 不可读")
+        return False
+    
+    # 检查是否为文件
+    if not os.path.isfile(input_path):
+        print(f"错误：'{input_path}' 不是文件")
+        return False
+    
+    # 检查输入文件扩展名（可选警告）
+    if not input_path.lower().endswith('.m3u'):
+        print(f"警告：输入文件 '{input_path}' 可能不是标准M3U文件")
+    
+    # 检查输出目录是否可写
+    output_dir = os.path.dirname(os.path.abspath(output_path)) or '.'
+    if not os.access(output_dir, os.W_OK):
+        print(f"错误：输出目录 '{output_dir}' 不可写")
+        return False
+    
+    # 检查输入输出是否为同一文件（提供信息性提示）
+    input_abs = os.path.abspath(input_path)
+    output_abs = os.path.abspath(output_path)
+    
+    if input_abs == output_abs:
+        print("信息：输入和输出为同一文件，将安全覆盖原文件")
+    
+    return True
+
+def cleanup_temp_file(temp_path):
+    """
+    清理临时文件
+    """
+    if temp_path and os.path.exists(temp_path):
+        try:
+            os.unlink(temp_path)
+            print(f"已清理临时文件: {temp_path}")
+        except Exception as e:
+            print(f"警告：无法删除临时文件 {temp_path}: {e}")
+
+def process_m3u_file(input_file, output_file, max_workers=10, timeout=5, max_retries=3, force=False):
     """
     处理 M3U 文件，解析所有 URL，自动重试失败项
     """
     start_time = time.time()
+
+    # 检查输出文件是否已存在且与输入不同
+    input_abs = os.path.abspath(input_file)
+    output_abs = os.path.abspath(output_file)
+    
+    if os.path.exists(output_file) and input_abs != output_abs:
+        if not force:
+            print(f"错误：输出文件 '{output_file}' 已存在")
+            print("使用 --force 参数强制覆盖，或指定不同的输出文件")
+            return False
 
     with open(input_file, 'r', encoding='utf-8') as f:
         lines = [line.strip() for line in f.readlines()]
@@ -138,33 +260,62 @@ def process_m3u_file(input_file, output_file, max_workers=10, timeout=5, max_ret
             urls_to_process.append(line)
             url_to_line_indices.setdefault(line, []).append(i)
 
+    # 统计URL数量
+    url_count = len(urls_to_process)
+    if url_count == 0:
+        print("未找到需要处理的URL")
+        return False
+
+    print(f"找到 {url_count} 个需要处理的URL")
+
     # resolved_map 现在存储的是包含 'final_url', 'success', 'is_video_related' 的字典
     resolved_map = resolve_urls_with_retry(
-        urls_to_process, max_workers=max_workers, timeout=timeout, max_retries=max_retries, delay_between_retries=10
+        urls_to_process, max_workers=max_workers, timeout=timeout, 
+        max_retries=max_retries, delay_between_retries=10
     )
 
     # 遍历原始行，替换为最终解析的URL
+    success_count = 0
+    fail_count = 0
+    
     for original_url, info in resolved_map.items():
         final_url = info["final_url"]
         success = info["success"]
-        # is_video_related = info["is_video_related"] # 如果需要，也可以使用这个信息
 
         if success:
             for i in url_to_line_indices[original_url]:
                 lines[i] = final_url
+            success_count += 1
         else:
             # 如果解析失败，可以选择保留原始URL或进行其他处理
             print(f"❗ 原始 URL '{original_url}' 解析失败，保留原样。")
             # 也可以选择 lines[i] = f"#FAILED_URL_{original_url}" 来标记失败
-            pass
+            fail_count += 1
 
+    # 安全写入输出文件
+    write_success, temp_path = safe_write_output(lines, input_file, output_file)
+    
+    if not write_success:
+        cleanup_temp_file(temp_path)
+        return False
 
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write('\n'.join(lines))
-
-    print(f"\n🎉 所有任务完成，总耗时 {time.time() - start_time:.2f} 秒")
+    total_time = time.time() - start_time
+    
+    print(f"\n🎉 所有任务完成，总耗时 {total_time:.2f} 秒")
     print(f"输入文件: {input_file}")
     print(f"输出文件: {output_file}")
+    print(f"URL处理统计:")
+    print(f"  - 成功: {success_count} 个")
+    print(f"  - 失败: {fail_count} 个")
+    print(f"  - 总计: {url_count} 个")
+    
+    if success_count > 0:
+        print(f"  - 成功率: {success_count/url_count*100:.1f}%")
+    
+    if input_abs == output_abs:
+        print("注意：已安全覆盖原文件")
+    
+    return True
 
 def parse_arguments():
     """
@@ -173,17 +324,32 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='处理M3U文件中的URL重定向')
     parser.add_argument('--input', required=True, help='输入M3U文件路径')
     parser.add_argument('--output', required=True, help='输出M3U文件路径')
-    parser.add_argument('--workers', type=int, default=5, help='最大工作线程数 (默认: 5)')
-    parser.add_argument('--timeout', type=int, default=10, help='请求超时时间(秒) (默认: 10)')
-    parser.add_argument('--retries', type=int, default=5, help='最大重试次数 (默认: 5)')
+    parser.add_argument('--workers', type=int, default=5, 
+                       help='最大工作线程数 (默认: 5)')
+    parser.add_argument('--timeout', type=int, default=10, 
+                       help='请求超时时间(秒) (默认: 10)')
+    parser.add_argument('--retries', type=int, default=5, 
+                       help='最大重试次数 (默认: 5)')
+    parser.add_argument('--force', action='store_true',
+                       help='强制覆盖输出文件（如果已存在且与输入不同）')
+    
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = parse_arguments()
-    process_m3u_file(
+    
+    # 验证参数
+    if not validate_arguments(args.input, args.output):
+        sys.exit(1)
+    
+    success = process_m3u_file(
         input_file=args.input,
         output_file=args.output,
         max_workers=args.workers,
         timeout=args.timeout,
-        max_retries=args.retries
+        max_retries=args.retries,
+        force=args.force
     )
+    
+    if not success:
+        sys.exit(1)
