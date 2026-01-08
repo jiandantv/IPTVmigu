@@ -1,5 +1,8 @@
 import argparse
 import sys
+import os
+import tempfile
+import shutil
 
 def _check_match(text, keyword_str):
     """
@@ -147,22 +150,160 @@ def extract_keyword_lines(filepath, extinf_and_url_keywords=None, extinf_or_url_
     
     return result
 
+def safe_write_output(data, input_path, output_path):
+    """
+    安全地写入输出文件，支持同文件覆盖
+    
+    :param data: 要写入的数据列表
+    :param input_path: 输入文件路径
+    :param output_path: 输出文件路径
+    :return: (success, temp_path) 成功返回(True, None)，失败返回(False, temp_path)
+    """
+    # 获取绝对路径以判断是否为同一个文件
+    input_abs = os.path.abspath(input_path)
+    output_abs = os.path.abspath(output_path)
+    is_same_file = input_abs == output_abs
+    
+    temp_path = None
+    
+    try:
+        # 如果是同一个文件，先写到临时文件
+        if is_same_file:
+            # 在与输出文件相同目录创建临时文件
+            output_dir = os.path.dirname(output_path) or '.'
+            fd, temp_path = tempfile.mkstemp(
+                dir=output_dir,
+                suffix='.m3u',
+                prefix='.tmp_',
+                text=True
+            )
+            
+            # 使用文件描述符打开文件
+            out_f = os.fdopen(fd, 'w', encoding='utf-8')
+        else:
+            # 直接打开输出文件
+            out_f = open(output_path, 'w', encoding='utf-8')
+        
+        # 写入数据
+        with out_f:
+            for line in data:
+                out_f.write(line + '\n')
+        
+        # 如果是同一个文件，进行原子替换
+        if is_same_file:
+            try:
+                # Python 3.3+ 推荐使用 os.replace 实现原子替换
+                os.replace(temp_path, output_path)
+                temp_path = None  # 替换成功，清除临时文件引用
+            except Exception as e:
+                # 如果 os.replace 失败，使用 shutil.move 作为备选
+                print(f"警告：原子替换失败，使用备选方案: {e}")
+                shutil.move(temp_path, output_path)
+                temp_path = None  # 移动成功，清除临时文件引用
+        
+        return True, None
+        
+    except Exception as e:
+        print(f"写入文件失败: {e}")
+        return False, temp_path
+
+def validate_arguments(args):
+    """
+    验证命令行参数的合理性
+    """
+    # 检查输入文件是否存在
+    if not os.path.exists(args.input):
+        print(f"错误：输入文件 '{args.input}' 不存在")
+        return False
+    
+    # 检查输入文件是否可读
+    if not os.access(args.input, os.R_OK):
+        print(f"错误：输入文件 '{args.input}' 不可读")
+        return False
+    
+    # 检查是否为文件
+    if not os.path.isfile(args.input):
+        print(f"错误：'{args.input}' 不是文件")
+        return False
+    
+    # 检查输入文件扩展名（可选警告）
+    if not args.input.lower().endswith('.m3u'):
+        print(f"警告：输入文件 '{args.input}' 可能不是标准M3U文件")
+    
+    # 检查输出目录是否可写
+    output_dir = os.path.dirname(os.path.abspath(args.output)) or '.'
+    if not os.access(output_dir, os.W_OK):
+        print(f"错误：输出目录 '{output_dir}' 不可写")
+        return False
+    
+    # 检查输入输出是否为同一文件（提供信息性提示）
+    input_abs = os.path.abspath(args.input)
+    output_abs = os.path.abspath(args.output)
+    
+    if input_abs == output_abs:
+        print("信息：输入和输出为同一文件，将安全覆盖原文件")
+    
+    return True
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description='从M3U文件中提取或删除包含指定关键字的记录')
     parser.add_argument('--input', required=True, help='输入M3U文件路径')
     parser.add_argument('--output', required=True, help='输出文件路径')
-    parser.add_argument('-n', action='store_true', dest='no_config', help='只保留EXTINF和URL行，丢弃中间配置行')
-    parser.add_argument('-r', action='store_true', dest='remove_mode', help='删除模式：删除匹配的记录，保留不匹配的记录')
+    parser.add_argument('-n', action='store_true', dest='no_config', 
+                       help='只保留EXTINF和URL行，丢弃中间配置行')
+    parser.add_argument('-r', action='store_true', dest='remove_mode', 
+                       help='删除模式：删除匹配的记录，保留不匹配的记录')
+    parser.add_argument('--force', action='store_true',
+                       help='强制覆盖输出文件（如果已存在且与输入不同）')
 
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--eandu', dest='extinf_and_url_keywords', help='AND模式："EXTINF关键词,URL关键词"')
-    group.add_argument('--eoru', dest='extinf_or_url_keywords', help='OR模式："EXTINF关键词,URL关键词"')
+    group.add_argument('--eandu', dest='extinf_and_url_keywords', 
+                      help='AND模式："EXTINF关键词,URL关键词"')
+    group.add_argument('--eoru', dest='extinf_or_url_keywords', 
+                      help='OR模式："EXTINF关键词,URL关键词"')
 
     return parser.parse_args()
 
+def get_original_channel_count(filepath):
+    """
+    获取原始文件中的频道数量
+    """
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            count = sum(1 for line in f if line.strip().startswith('#EXTINF'))
+        return count
+    except Exception as e:
+        print(f"警告：无法计算原始频道数量: {e}")
+        return 0
+
+def cleanup_temp_file(temp_path):
+    """
+    清理临时文件
+    """
+    if temp_path and os.path.exists(temp_path):
+        try:
+            os.unlink(temp_path)
+            print(f"已清理临时文件: {temp_path}")
+        except Exception as e:
+            print(f"警告：无法删除临时文件 {temp_path}: {e}")
+
 if __name__ == "__main__":
     args = parse_arguments()
-
+    
+    # 验证参数
+    if not validate_arguments(args):
+        sys.exit(1)
+    
+    # 检查输出文件是否已存在且与输入不同
+    input_abs = os.path.abspath(args.input)
+    output_abs = os.path.abspath(args.output)
+    
+    if os.path.exists(args.output) and input_abs != output_abs:
+        if not args.force:
+            print(f"错误：输出文件 '{args.output}' 已存在")
+            print("使用 --force 参数强制覆盖，或指定不同的输出文件")
+            sys.exit(1)
+    
     # 根据参数调用函数
     if args.extinf_and_url_keywords:
         extracted_lines = extract_keyword_lines(
@@ -186,26 +327,34 @@ if __name__ == "__main__":
             mode_str = "删除EXTINF或URL匹配(OR)的记录"
         else:
             mode_str = "提取EXTINF或URL匹配(OR)的记录"
-
-    try:
-        with open(args.output, 'w', encoding='utf-8') as f:
-            for line in extracted_lines:
-                f.write(line + '\n')
-        
-        count = sum(1 for line in extracted_lines if line.startswith('#EXTINF'))
-        
-        if args.remove_mode:
-            print(f"处理完成！成功保留 {count} 条记录。")
-            original_count = sum(1 for line in open(args.input, 'r', encoding='utf-8') 
-                               if line.strip().startswith('#EXTINF'))
+    
+    # 安全写入输出文件
+    success, temp_path = safe_write_output(extracted_lines, args.input, args.output)
+    
+    # 如果失败，清理临时文件
+    if not success:
+        cleanup_temp_file(temp_path)
+        print("处理失败！")
+        sys.exit(1)
+    
+    # 计算统计信息
+    count = sum(1 for line in extracted_lines if line.startswith('#EXTINF'))
+    
+    if args.remove_mode:
+        print(f"处理完成！成功保留 {count} 条记录。")
+        original_count = get_original_channel_count(args.input)
+        if original_count > 0:
             deleted_count = original_count - count
             print(f"删除了 {deleted_count} 条匹配的记录。")
-        else:
-            print(f"处理完成！成功提取 {count} 条记录。")
-        
-        if args.no_config:
-            print("提示：已开启 -n 模式，丢弃了所有中间配置行。")
-        print(f"模式：{mode_str}")
-        print(f"结果保存至：{args.output}")
-    except Exception as e:
-        print(f"写入文件失败：{e}")
+    else:
+        print(f"处理完成！成功提取 {count} 条记录。")
+    
+    if args.no_config:
+        print("提示：已开启 -n 模式，丢弃了所有中间配置行。")
+    
+    print(f"模式：{mode_str}")
+    print(f"结果保存至：{args.output}")
+    
+    # 检查是否使用了临时文件（即输入输出相同）
+    if os.path.abspath(args.input) == os.path.abspath(args.output):
+        print("注意：已安全覆盖原文件")
