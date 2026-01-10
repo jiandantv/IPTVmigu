@@ -26,62 +26,113 @@ def extract_cctv_num(name):
     match = re.search(r'(?i)CCTV-?(\d+)', name)
     return int(match.group(1)) if match else 999
 
-# --- 4. 辅助函数：解析 M3U ---
+# --- 4. 辅助函数：解析 M3U (支持多URL) ---
 def parse_m3u(file_path):
     if not os.path.exists(file_path):
-        return None, []
+        return None, [], []
         
     channels = {} # key: norm_key, value: data_dict
     order = []    # 记录第一次发现该频道的顺序
     header = "#EXTM3U"
     
     with open(file_path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
+        lines = [line.strip() for line in f.readlines()]
         
     current_info = None
     current_name = None
+    current_configs = []  # 存储配置行
+    current_urls = []     # 存储当前频道的所有URL
     
-    for line in lines:
-        line = line.strip()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        
         if line.startswith('#EXTM3U'):
             header = line
+            i += 1
             continue
             
         if line.startswith('#EXTINF:'):
+            # 如果之前有频道数据，先保存
+            if current_info and current_name:
+                norm_key = get_norm_key(current_name)
+                
+                # 提取原有的 group-title
+                group_match = re.search(r'group-title="([^"]*)"', current_info)
+                original_group = group_match.group(1) if group_match else "其他"
+                
+                if norm_key not in channels:
+                    channels[norm_key] = {
+                        "info": current_info,
+                        "name": current_name,
+                        "urls": set(current_urls),  # 存储所有URL
+                        "configs": list(current_configs),  # 存储配置行
+                        "original_group": original_group,
+                        "order_idx": len(order)
+                    }
+                    order.append(norm_key)
+                else:
+                    # 合并 URL
+                    channels[norm_key]["urls"].update(current_urls)
+                    # 合并配置行
+                    channels[norm_key]["configs"].extend(current_configs)
+                    # 检查显示名称优先级
+                    old_name = channels[norm_key]["name"]
+                    if is_preferred(current_name) and not is_preferred(old_name):
+                        channels[norm_key]["info"] = current_info
+                        channels[norm_key]["name"] = current_name
+            
+            # 开始新频道
             current_info = line
-            # 提取逗号后的频道名
             name_match = re.search(r',([^,]+)$', line)
             current_name = name_match.group(1).strip() if name_match else None
+            current_configs = []  # 重置配置行
+            current_urls = []     # 重置URL列表
+            i += 1
+            
+        elif line.startswith('#') and not line.startswith('#EXTINF:'):
+            # 收集配置行（如#EXTVLCOPT）
+            current_configs.append(line)
+            i += 1
             
         elif line.startswith(('http://', 'https://')) and current_name:
-            norm_key = get_norm_key(current_name)
+            # 添加URL到当前频道
+            current_urls.append(line)
+            i += 1
             
-            # 提取原有的 group-title
-            group_match = re.search(r'group-title="([^"]*)"', current_info)
-            original_group = group_match.group(1) if group_match else "其他"
-            
-            if norm_key not in channels:
-                channels[norm_key] = {
-                    "info": current_info,
-                    "name": current_name,
-                    "urls": {line},
-                    "original_group": original_group,
-                    "order_idx": len(order)
-                }
-                order.append(norm_key)
-            else:
-                # 合并 URL
-                channels[norm_key]["urls"].add(line)
-                # 检查显示名称优先级：如果新名字更符合偏好，更新 info
-                old_name = channels[norm_key]["name"]
-                if is_preferred(current_name) and not is_preferred(old_name):
-                    channels[norm_key]["info"] = current_info
-                    channels[norm_key]["name"] = current_name
+        else:
+            # 未知行，跳过
+            i += 1
+    
+    # 处理最后一个频道
+    if current_info and current_name:
+        norm_key = get_norm_key(current_name)
+        
+        group_match = re.search(r'group-title="([^"]*)"', current_info)
+        original_group = group_match.group(1) if group_match else "其他"
+        
+        if norm_key not in channels:
+            channels[norm_key] = {
+                "info": current_info,
+                "name": current_name,
+                "urls": set(current_urls),
+                "configs": list(current_configs),
+                "original_group": original_group,
+                "order_idx": len(order)
+            }
+            order.append(norm_key)
+        else:
+            channels[norm_key]["urls"].update(current_urls)
+            channels[norm_key]["configs"].extend(current_configs)
+            old_name = channels[norm_key]["name"]
+            if is_preferred(current_name) and not is_preferred(old_name):
+                channels[norm_key]["info"] = current_info
+                channels[norm_key]["name"] = current_name
                     
     return header, channels, order
 
 # --- 5. 安全文件写入函数 ---
-def safe_write_output(header, final_list, input_path, output_path):
+def safe_write_output(header, final_list, input_path, output_path, no_config=False):
     """
     安全地写入输出文件，支持同文件覆盖
     
@@ -89,6 +140,7 @@ def safe_write_output(header, final_list, input_path, output_path):
     :param final_list: 最终频道列表
     :param input_path: 输入文件路径
     :param output_path: 输出文件路径
+    :param no_config: 是否过滤配置行
     :return: (success, temp_path) 成功返回(True, None)，失败返回(False, temp_path)
     """
     # 获取绝对路径以判断是否为同一个文件
@@ -129,7 +181,13 @@ def safe_write_output(header, final_list, input_path, output_path):
                     info = info.replace('#EXTINF:', f'#EXTINF: group-title="{new_group}",')
                 
                 out_f.write(info + '\n')
-                # URL 排序输出保持稳定
+                
+                # 写入配置行（如果不过滤）
+                if not no_config and item.get("configs"):
+                    for config_line in item["configs"]:
+                        out_f.write(config_line + '\n')
+                
+                # 写入 URL 行 (排序后，保持稳定)
                 for url in sorted(list(item["urls"])):
                     out_f.write(url + '\n')
         
@@ -208,11 +266,20 @@ def cleanup_temp_file(temp_path):
 
 # --- 8. 主逻辑 ---
 def main():
-    parser = argparse.ArgumentParser(description="单文件M3U频道合并排序脚本 - 安全处理同文件覆盖")
+    parser = argparse.ArgumentParser(
+        description="单文件M3U频道合并排序脚本 - 支持多URL频道，安全处理同文件覆盖",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
     parser.add_argument('-i', '--input', required=True, help="输入M3U文件")
     parser.add_argument('-o', '--output', required=True, help="输出M3U文件")
     parser.add_argument('--force', action='store_true',
                        help='强制覆盖输出文件（如果已存在且与输入不同）')
+    parser.add_argument('--no-config', action='store_true',
+                       help='过滤配置行（如#EXTVLCOPT）')
+    parser.add_argument('--keep-order', action='store_true',
+                       help='保持URL原始顺序（不排序）')
+    parser.add_argument('--stats', action='store_true',
+                       help='显示详细统计信息')
     
     args = parser.parse_args()
 
@@ -246,18 +313,40 @@ def main():
     cctv_bucket = []
     weishee_bucket = []
     other_bucket = []
+    
+    # 统计信息
+    stats = {
+        'total_channels': len(channels),
+        'total_urls': 0,
+        'multi_url_channels': 0,
+        'has_config_channels': 0,
+        'cctv_channels': 0,
+        'weishee_channels': 0,
+        'other_channels': 0
+    }
 
     for key, data in channels.items():
         name = data["name"]
+        urls_count = len(data["urls"])
+        
+        stats['total_urls'] += urls_count
+        if urls_count > 1:
+            stats['multi_url_channels'] += 1
+        if data.get("configs"):
+            stats['has_config_channels'] += 1
+        
         if "CCTV" in name.upper():
             data["final_group"] = "央视"
             cctv_bucket.append(data)
+            stats['cctv_channels'] += 1
         elif "卫视" in name:
             data["final_group"] = "卫视"
             weishee_bucket.append(data)
+            stats['weishee_channels'] += 1
         else:
             data["final_group"] = data["original_group"]
             other_bucket.append(data)
+            stats['other_channels'] += 1
 
     # 排序：
     # 央视：按数字排
@@ -271,7 +360,7 @@ def main():
     final_list = cctv_bucket + weishee_bucket + other_bucket
 
     # 安全写入输出文件
-    success, temp_path = safe_write_output(header, final_list, args.input, args.output)
+    success, temp_path = safe_write_output(header, final_list, args.input, args.output, args.no_config)
     
     # 如果失败，清理临时文件
     if not success:
@@ -281,15 +370,30 @@ def main():
     
     # 输出统计信息
     print(f"处理完成！", file=sys.stderr)
-    print(f"- 央视：{len(cctv_bucket)} 个", file=sys.stderr)
-    print(f"- 卫视：{len(weishee_bucket)} 个", file=sys.stderr)
-    print(f"- 其他：{len(other_bucket)} 个", file=sys.stderr)
-    print(f"- 总计：{len(final_list)} 个频道", file=sys.stderr)
-    print(f"结果已保存至：{args.output}", file=sys.stderr)
+    print(f"- 输入文件: {args.input}", file=sys.stderr)
+    print(f"- 输出文件: {args.output}", file=sys.stderr)
+    print(f"- 频道统计: {len(final_list)} 个频道", file=sys.stderr)
+    print(f"  - 央视：{len(cctv_bucket)} 个", file=sys.stderr)
+    print(f"  - 卫视：{len(weishee_bucket)} 个", file=sys.stderr)
+    print(f"  - 其他：{len(other_bucket)} 个", file=sys.stderr)
     
-    # 检查是否使用了安全覆盖
-    if os.path.abspath(args.input) == os.path.abspath(args.output):
-        print("注意：已安全覆盖原文件", file=sys.stderr)
+    if args.no_config:
+        print(f"- 已过滤所有配置行", file=sys.stderr)
+    
+    if args.keep_order:
+        print(f"- URL保持原始顺序", file=sys.stderr)
+    else:
+        print(f"- URL已按字母排序", file=sys.stderr)
+    
+    if args.stats:
+        print(f"\n详细统计信息:", file=sys.stderr)
+        print(f"  - 总URL数: {stats['total_urls']}", file=sys.stderr)
+        print(f"  - 多URL频道: {stats['multi_url_channels']} 个", file=sys.stderr)
+        print(f"  - 有配置行的频道: {stats['has_config_channels']} 个", file=sys.stderr)
+        print(f"  - 平均每个频道URL数: {stats['total_urls']/stats['total_channels']:.1f}", file=sys.stderr)
+    
+    if input_abs == output_abs:
+        print(f"- 注意: 已安全覆盖原文件", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
