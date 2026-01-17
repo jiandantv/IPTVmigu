@@ -30,6 +30,9 @@ jobs:
         python ./scripts/m3u_merger.py -i mg_m.m3u -o mg_merged.m3u
         python ./scripts/add_channel.py -i mg_merged.m3u -o mg_merged.m3u -a "搜狐剧场,https://hdl-vip-ws.qf.56.com/live/lc_11730.flv"
         python ./scripts/deduplicate.py -i mig.m3u -o mig_d.m3u
+        python ./scripts/m3u_mergerng.py -i mig_d.m3u -o mg_d.m3u
+        python ./scripts/m3u_merger.py -i mig_d.m3u -o mg_d.m3u
+        python ./scripts/add_channel.py -i mig_d.m3u -o mig_d.m3u -a "搜狐剧场,https://hdl-vip-ws.qf.56.com/live/lc_11730.flv"
         
     # --- 块2: huuc 源处理  ---
     - name: Process luuc Files
