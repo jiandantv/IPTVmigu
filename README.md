@@ -21,5 +21,5 @@ https://gh-proxy.org/github.com/ioptu/IPTV.txt2m3u.player/raw/refs/heads/main/tv
 
 
 ---
-- 直播源来自互联网，仅供个人欣赏，请勿商用。
+- 直播源来自互联网，仅供个人欣赏。
 ---
