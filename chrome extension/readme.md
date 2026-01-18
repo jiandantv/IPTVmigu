@@ -22,3 +22,11 @@
 > [下载组策略模板 chrome](https://www.chromium.org/administrators/policy-templates/)
 >
 > ["打包扩展"获得crx（edge示例）](https://learn.microsoft.com/zh-cn/deployedge/microsoft-edge-manage-extensions-webstore#publish-an-extension)
+
+## 其他
+
+> [移动端播放软件APK](https://github.com/skysolf/iptv/)
+>
+> [电视直播软件_mytv-android](https://github.com/mytv-android/mytv-android) + [mytv可用js直播源](https://gitee.com/organizations/mytv-android/projects)
+>
+> [Github文件加速](https://gh-proxy.com/) 将GitHub链接转换为多区域加速链接，解决GitHub访问慢、下载失败等问题
