@@ -10,7 +10,18 @@ https://gh-proxy.org/github.com/ioptu/IPTV.txt2m3u.player/raw/refs/heads/main/mi
 ```
 https://gh-proxy.org/github.com/ioptu/IPTV.txt2m3u.player/raw/refs/heads/main/migu_merged.m3u
 ```
-
+```
+https://gh-proxy.org/github.com/ioptu/IPTV.txt2m3u.player/raw/refs/heads/main/httop.m3u
+```
+```
+https://gh-proxy.org/github.com/ioptu/IPTV.txt2m3u.player/raw/refs/heads/main/httop_merged.m3u
+```
+```
+https://gh-proxy.org/github.com/ioptu/IPTV.txt2m3u.player/raw/refs/heads/main/iptv.m3u
+```
+```
+https://gh-proxy.org/github.com/ioptu/IPTV.txt2m3u.player/raw/refs/heads/main/iptv_merged.m3u
+```
 
 > [源备份](https://github.com/ioptu/IPTV.txt2m3u.player/blob/main/backup) 
 ## Chrome扩展 
