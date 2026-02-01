@@ -33,7 +33,7 @@ jobs:
         python ./scripts/m3u_mergerng.py -i mig_d.m3u -o mig_d.m3u
         python ./scripts/m3u_merger.py -i mig_d.m3u -o mig_d.m3u
         ##python ./scripts/url_sorter.py -i mig_d.m3u -o mig_d.m3u -k "http" -ch "CCTV5+" -rn "CCTV5+"
-        python ./scripts/add_channel.py -i mig_d.m3u -o mig_d.m3u -a "搜狐剧场,https://hdl-vip-ws.qf.56.com/live/lc_11730.flv"
+        ##python ./scripts/add_channel.py -i mig_d.m3u -o mig_d.m3u -a "搜狐剧场,https://hdl-vip-ws.qf.56.com/live/lc_11730.flv"
         
     # --- httop 源处理  ---
     - name: Process httop Files
